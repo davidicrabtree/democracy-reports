@@ -1,0 +1,146 @@
+---
+title: "`r params$given_country`'s Democracy Profile"
+author: "David I. Crabtree"
+date: "`r Sys.Date()`"
+params:
+  given_country: "South Africa"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+library(scales)
+library(here)
+library(tidyverse)
+library(tidyr)
+theme_set(theme_dark())
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE,
+                      message = FALSE)
+```
+
+```{r Load Data, include=FALSE, cache=FALSE}
+fh_wb <- read_csv(here("data", "fh_wb.csv"))
+```
+
+```{r Country-Specific Labels, include = FALSE}
+my_country <- params$given_country
+country_data <- fh_wb %>%
+  filter(country == my_country)
+most_recent <- country_data %>%
+  drop_na(status) %>%
+  summarize(max_year = max(year)) %>%
+  pull()
+my_continent <- country_data %>%
+  filter(year == most_recent) %>%
+  pull(continent)
+my_color <- "#f9066e"
+if (country_data$status[country_data$year == most_recent] == "Free") {
+  my_color <- "#00ffff"
+}
+if (country_data$status[country_data$year == most_recent] == "Partly Free") {
+  my_color <- "#FFFE4C"
+}
+```
+
+
+## Democracy in `r my_country`
+
+```{r Demscore}
+
+
+country_data %>%
+  ggplot(mapping = aes(x = year, y = demscore, color = country_data$status)) +
+       geom_path(aes(group = 1)) + 
+       geom_point() +
+       labs(
+            x = "Year",
+            y = "Democracy Score",
+            color = "Status") +
+       scale_y_continuous(limits = c(2, 14)) +
+       scale_color_manual(breaks = c("Free", "Partly Free", "Not Free"),
+                        values=c("#00ffff", "#FFFE4C", "#f9066e"))
+```
+
+## Political Rights & Civil Liberties in `r my_country`
+
+```{r Political Rights & Civil Libs}
+
+country_data %>%
+  ggplot(aes(x = year)) +
+  geom_jitter(aes(
+    y = pr,
+    color = "Political Rights"
+  ), width = 0) +
+  geom_jitter(aes(
+    y = cl,
+    color = "Civil Liberties"
+  ), width = 0) +
+  scale_y_continuous(limits = c(1, 7)) +
+  scale_color_manual(breaks = c("Political Rights", "Civil Liberties"),
+                        values=c("#FF00A8", "#00ffff")) +
+  labs(
+    caption = "Note: Points are jittered.",
+    x = "Year",
+    y = "Rating",
+    color = NULL
+  ) 
+
+
+```
+
+## GDP per Capita in `r my_country`
+
+```{r GDP per Capita}
+
+country_data %>%
+  ggplot(mapping = aes(x = year, y = gdppc)) +
+       geom_point(color = my_color) +
+       geom_line(color = my_color) + 
+       labs(
+            x = "Year",
+            y = "GDP per Capita") +
+       scale_y_continuous(limits = c(0, 50000),
+                    labels  = label_number(scale = 1e-3, prefix = "$", suffix = "k", accuracy = 1))
+```
+
+
+## Relationship Between Income & Democracy in `r my_country`
+```{r Income & Dem}
+
+country_data <- country_data %>%
+  mutate(loggdppc = log(gdppc))
+
+ggplot(data = country_data,
+       mapping = aes(x = demscore, y = loggdppc)) +
+       geom_point() + 
+       geom_smooth(alpha = 0.1, color = "#f9066e") +
+       labs(
+            x = "Democracy Score",
+            y = "Log GDP per Capita") +
+       scale_x_continuous(limits = c(2, 14)) + 
+       theme()
+       
+
+```
+
+
+## `r my_country` in Comparative Perspective: 
+### All Democracy Ratings in `r most_recent` for Countries in `r my_continent`
+
+```{r Democracy in Comparative Perspective, fig.height = 10}
+
+fh_wb %>%
+  filter(year == most_recent,
+         continent == my_continent) %>%
+  ggplot(aes(x = fct_reorder(country, demscore), y = demscore)) +
+  geom_col() +
+  geom_col(data = country_data %>% filter(year == most_recent), fill = "#f9066e") +
+  coord_flip() +
+  labs(
+    x = NULL,
+    y = "Democracy Scores"
+  )
+```
