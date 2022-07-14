@@ -116,7 +116,7 @@ country_data <- country_data %>%
 ggplot(data = country_data,
        mapping = aes(x = demscore, y = loggdppc)) +
        geom_point() + 
-       geom_smooth(alpha = 0.1, color = "#f9066e") +
+       geom_smooth(alpha = 0.1, color = my_color) +
        labs(
             x = "Democracy Score",
             y = "Log GDP per Capita") +
@@ -137,7 +137,7 @@ fh_wb %>%
          continent == my_continent) %>%
   ggplot(aes(x = fct_reorder(country, demscore), y = demscore)) +
   geom_col() +
-  geom_col(data = country_data %>% filter(year == most_recent), fill = "#f9066e") +
+  geom_col(data = country_data %>% filter(year == most_recent), fill = my_color) +
   coord_flip() +
   labs(
     x = NULL,
